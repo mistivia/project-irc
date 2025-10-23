@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IRC Log Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+	    max-width: 1000px;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        #log-container {
+            border: 1px solid #ccc;
+            padding: 15px;
+            background-color: #fff;
+            white-space: pre-wrap;
+        }
+        pre {
+            font-family: Consolas, monospace;
+            margin: 0;
+            padding: 0;
+	    overflow-wrap: anywhere;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .loading {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>IRC Log Viewer</h1>
+    <div id="status"></div>
+    <div id="log-container">
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const statusDiv = document.getElementById('status');
+            const logContainer = document.getElementById('log-container');
+            
+            let urlHash = window.location.hash.substring(1);
+
+            if (!urlHash) {
+                statusDiv.className = 'error';
+                statusDiv.textContent = 'Error: No hash fragment found in the URL. Please append a hash (e.g., #2023-01-01) to the URL.';
+                return;
+            }
+            urlHash = urlHash.replace(/#/g, '%23');
+            const logBaseUrl = 'https://raye.mistivia.com/irclog/';
+            let targetUrl = `${logBaseUrl}${urlHash}.txt`; // 假设日志文件是 .txt 格式
+
+            statusDiv.className = 'loading';
+            statusDiv.textContent = `Loading log for: ${urlHash} from ${targetUrl} ...`;
+            logContainer.innerHTML = '';
+
+            // --- 新增: HTML特殊字符转义函数 ---
+            function escapeHtml(unsafe) {
+                if (!unsafe) return '';
+                // 替换 <, >, &, "
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            function ircAction(text) {
+              const regex =
+                /^(\[[^\]]+\])(\s*<)([^>]+)(>:\s*)(\u0001ACTION\s+)([^\u0001]+)(\u0001)(.*)$/gm;
+              const replacement = '$1 * $3 $6$8';
+              return text.replace(regex, replacement);
+            }			  
+
+            function linkify(text) {
+                const urlRegex = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+                return text.replace(urlRegex, function(url) {
+                    return `<a href="${url}" target="_blank">${url}</a>`;
+                });
+            }
+
+            fetch(targetUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP Error: ${response.status} ${response.statusText} for hash: ${urlHash}`);
+                    }
+                    return response.text();
+                })
+                .then(text => {
+                    statusDiv.textContent = ''
+                    statusDiv.className = '';
+		    text = ircAction(text);
+                    let safeText = escapeHtml(text);
+                    
+                    const finalHtml = linkify(safeText);
+                    logContainer.innerHTML = `<pre>${finalHtml}</pre>`;
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    statusDiv.className = 'error';
+                    statusDiv.textContent = `Failed to load log. ${error.message}`;
+                    logContainer.innerHTML = `<pre class="error">Could not fetch log. Please check the console for details. (CORS or network issue likely).</pre>`;
+                });
+        });
+    </script>
+
+</body>
+</html>
