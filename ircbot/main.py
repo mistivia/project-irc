@@ -13,6 +13,7 @@ NICKNAME = "android"
 IDENT = NICKNAME
 REALNAME = "bot"
 CHANNELS = ["#main", "#ezl9fd7fa13c4bad4f4"]
+GREETINGS = ["#main"]
 LOGPATH = '/volume/webroot/irclog'
 
 BUFFER_SIZE = 2048
@@ -56,13 +57,13 @@ def yesterday_log(chan):
 
 @command("log")
 def log_command(chan, sender, args):
-    log1 = today_log(chan)
-    log0 = yesterday_log(chan)
-    return "今天: " + log1 + '\n' + "昨天: " + log0
+    return today_log(chan)
 
 @command("join")
 def join_command(chan, sender, args):
     if sender == NICKNAME:
+        return ''
+    if not chan in GREETINGS:
         return ''
     return "Dōmo, " + sender + ' san.'
 
@@ -156,9 +157,7 @@ def write_log(channel, nick, msg):
         return
     if msg.startswith('！log'):
         return
-    if msg.startswith('今天: https://raye.mistivia.com/irclog/') and nick == NICKNAME:
-        return
-    if msg.startswith('昨天: https://raye.mistivia.com/irclog/') and nick == NICKNAME:
+    if msg.startswith('https://raye.mistivia.com/irclog/') and nick == NICKNAME:
         return
     now = datetime.datetime.now()
     base_dir = LOGPATH

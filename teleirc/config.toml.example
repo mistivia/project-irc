@@ -1,0 +1,24 @@
+[general]
+MediaDownloadPath="/var/www/tmp"
+MediaServerDownload="https://yourserver.com/matterbridge"
+
+[irc.myirc]
+Server="raye.mistivia.com:6697"
+Nick="TeleIRC"
+UseTLS=true
+SkipTLSVerify=false 
+RemoteNickFormat="<{NICK}> "
+
+[telegram.mytelegram]
+Token="xxxxxxxxxxxxxx"
+RemoteNickFormat="<{NICK}> " 
+
+[[gateway]]
+name="g1"
+enable=true
+[[gateway.inout]]
+account="telegram.mytelegram"
+channel="-0000000000000"
+[[gateway.inout]]
+account="irc.myirc"
+channel="#test"

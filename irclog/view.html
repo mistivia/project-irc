@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>IRC Log Viewer</title>
     <style>
         body {
@@ -14,14 +15,15 @@
             border: 1px solid #ccc;
             padding: 15px;
             background-color: #fff;
-            white-space: pre-wrap;
+            white-space: pre-wrap; /* 允许文本在新行换行 */
         }
         pre {
+            /* 确保 pre 标签内的内容保持预格式化文本的特点 */
             font-family: Consolas, monospace;
             margin: 0;
             padding: 0;
 	    overflow-wrap: anywhere;
-            white-space: pre-wrap;
+            white-space: pre-wrap; /* 允许文本在新行换行 */
         }
         .error {
             color: red;
@@ -30,20 +32,37 @@
         .loading {
             color: blue;
         }
+@media (max-width: 600px) {
+  pre {
+    font-size: 0.7em; 
+  }
+}
     </style>
 </head>
 <body>
 
     <h1>IRC Log Viewer</h1>
+    <!-- 新增日期选择界面 -->
+    <div id="controls">
+        <label for="log-date">选择日期：</label>
+        <input type="date" id="log-date" value=""> 
+	<br>
+	<br>
+    </div>
     <div id="status"></div>
+	    <button onclick="setPreviousDay()">上一天</button>
+    	<button onclick="setNextDay()">下一天</button>
     <div id="log-container">
     </div>
+	    <button onclick="setPreviousDay()">上一天</button>
+    	<button onclick="setNextDay()">下一天</button>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const statusDiv = document.getElementById('status');
             const logContainer = document.getElementById('log-container');
             
+            // 1. 读取URL的哈希值 (去掉开头的 #)
             let urlHash = window.location.hash.substring(1);
 
             if (!urlHash) {
@@ -51,7 +70,24 @@
                 statusDiv.textContent = 'Error: No hash fragment found in the URL. Please append a hash (e.g., #2023-01-01) to the URL.';
                 return;
             }
+var dateRegex = /(\d{4})\/(\d{2})-(\d{2})/; 
+
+var match = urlHash.match(dateRegex);
+var formattedDate = null;
+
+if (match) {
+  formattedDate = match[1] + '-' + match[2] + '-' + match[3]; 
+  document.getElementById("log-date").value = formattedDate;  
+}
+
             urlHash = urlHash.replace(/#/g, '%23');
+var parts = urlHash.split('/');
+
+	    var chan = "";
+if (parts.length >= 1) {
+    chan= parts[0];
+	    }		    
+            // 2. 构造TXT文件的URL
             const logBaseUrl = 'https://raye.mistivia.com/irclog/';
             let targetUrl = `${logBaseUrl}${urlHash}.txt`; // 假设日志文件是 .txt 格式
 
@@ -85,6 +121,7 @@
                 });
             }
 
+	    function loadLog(targetUrl) {
             fetch(targetUrl)
                 .then(response => {
                     if (!response.ok) {
@@ -104,10 +141,102 @@
                 .catch(error => {
                     console.error('Fetch error:', error);
                     statusDiv.className = 'error';
-                    statusDiv.textContent = `Failed to load log. ${error.message}`;
-                    logContainer.innerHTML = `<pre class="error">Could not fetch log. Please check the console for details. (CORS or network issue likely).</pre>`;
+                    logContainer.innerHTML = '';
                 });
+		}
+		loadLog(targetUrl);
+function ondatechange() {
+    var dateInput = this;
+    var dateValue = dateInput.value; // 获取当前选择的日期，格式为 yyyy-mm-dd
+
+    if (dateValue && chan) {
+        
+        var dateParts = dateValue.split('-'); // 结果如: ["2025", "10", "21"]
+        
+        var year = dateParts[0];
+        var month = dateParts[1];
+        var day = dateParts[2];
+
+        var finalPath = "https://raye.mistivia.com/irclog/" + chan + "/" + year + "/" + month + '-' + day + '.txt';
+	loadLog(finalPath);
+const currentUrl = window.location.href;
+const datePattern = /(\/)\d{4}(\/)\d{2}-\d{2}$/;
+const newDateReplacement = `$1${year}$2${month + '-' + day}`;
+const newUrl = currentUrl.replace(datePattern, newDateReplacement);
+window.history.pushState(null, '', newUrl);
+    }
+}
+
+
+document.getElementById("log-date").addEventListener('change', ondatechange, false);
+
         });
+
+        const dateInput = document.getElementById('log-date');
+
+        /**
+         * 格式化 Date 对象为 YYYY-MM-DD 字符串
+         * @param {Date} date - 要格式化的 Date 对象
+         * @returns {string} 格式化后的日期字符串 (YYYY-MM-DD)
+         */
+        function formatDate(date) {
+            const year = date.getFullYear();
+            // getMonth() 返回 0-11，所以需要 +1
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        /**
+         * 设置日期输入框的值
+         * @param {number} days - 要调整的天数 (例如: -1 为前一天, 1 为后一天)
+         */
+        function changeDate(days) {
+            let currentDate;
+            
+            // 1. 获取当前值，如果为空，则使用当前日期
+            const value = dateInput.value;
+            if (value) {
+                // 如果有值，从 ISO 格式 (YYYY-MM-DD) 创建 Date 对象
+                // 使用 new Date(string) 可能会有时区问题，但对于 YYYY-MM-DD 格式，它通常会解析为 UTC 午夜，
+                // 然后转换为本地时间。为了避免这个问题，可以手动解析或使用 new Date(year, monthIndex, day)。
+                // 另一种更简单的办法是创建一个新的 Date 对象，然后使用 setDate()
+                currentDate = new Date(value);
+            } else {
+                // 如果没有值，使用今天的日期
+                currentDate = new Date();
+            }
+
+            // 2. 调整日期
+            // new Date() 可能会包含时间部分，我们只需要日期。
+            // 确保使用正确的方法来处理月份和年份的正确跨越。
+            // setDate() 方法可以自动处理月份和年份的进位或退位。
+            // 获取当前日期的“日”数
+            const currentDay = currentDate.getDate();
+            // 设置新的“日”数 (例如: 当前日 - 1 或 当前日 + 1)
+            currentDate.setDate(currentDay + days);
+
+            // 3. 格式化并设置回输入框
+            dateInput.value = formatDate(currentDate);
+	    dateInput.dispatchEvent(new Event('change'));
+        }
+
+        /**
+         * 设置日期为前一天
+         */
+        function setPreviousDay() {
+            changeDate(-1);
+	    window.scrollTo(0, 0);
+        }
+
+        /**
+         * 设置日期为后一天
+         */
+        function setNextDay() {
+            changeDate(1);
+	    window.scrollTo(0, 0);
+        }
+
     </script>
 
 </body>
