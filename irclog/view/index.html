@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>IRC Log Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        #log-container {
+            border: 1px solid #ccc;
+            padding: 15px;
+            background-color: #fff;
+            white-space: pre-wrap;
+        }
+        pre {
+            font-family: Consolas, monospace;
+            margin: 0;
+            padding: 0;
+	    overflow-wrap: anywhere;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .loading {
+            color: blue;
+        }
+
+        @media (max-width: 600px) {
+            pre {
+                font-size: 0.7em; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>IRC Log Viewer</h1>
+    <div id="controls">
+        <label for="log-date">选择日期：</label>
+        <input type="date" id="log-date" value="">
+        <button onclick="setToday()">今天</button> 
+    <br>
+    <br>
+    </div>
+    <button onclick="setPreviousDay()">上一天</button>
+    <button onclick="setNextDay()">下一天</button>
+    <div id="log-container"></div>
+    <button onclick="setPreviousDay()">上一天</button>
+    <button onclick="setNextDay()">下一天</button>
+    <script src="./view.js"></script>
+</body>
+</html>

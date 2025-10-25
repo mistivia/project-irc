@@ -12,9 +12,11 @@ PORT = 6667
 NICKNAME = "android"
 IDENT = NICKNAME
 REALNAME = "bot"
-CHANNELS = ["#main", "#ezl9fd7fa13c4bad4f4"]
+CHANNELS = [
+]
 GREETINGS = ["#main"]
 LOGPATH = '/volume/webroot/irclog'
+RELAYBOT = 'TeleIRC'
 
 BUFFER_SIZE = 2048
 
@@ -34,30 +36,12 @@ def help_cmd(chan, sender, args):
     2. 丢骰子： !dice [骰数]d[面数]
     3. 随机选择：!choice 选项1 选项2 ... 选项n
     4. 复读机：!say 复读内容
-    5. AI词典：!dict 单词
+    5. AI词典: !dict 单词
     6. 查看聊天记录：!log
     """
-def today_log(chan):
-    now = datetime.datetime.now()
-    year = now.strftime("%Y")
-    month = now.strftime("%m")
-    day = now.strftime("%d")
-    url = (f"https://raye.mistivia.com/irclog/view.html#{chan}/"
-           f"{year}/{month}-{day}")
-    return url
-
-def yesterday_log(chan):
-    now = datetime.datetime.now() - datetime.timedelta(days=1)
-    year = now.strftime("%Y")
-    month = now.strftime("%m")
-    day = now.strftime("%d")
-    url = (f"https://raye.mistivia.com/irclog/view.html#{chan}/"
-           f"{year}/{month}-{day}")
-    return url
-
 @command("log")
 def log_command(chan, sender, args):
-    return today_log(chan)
+    return f"https://raye.mistivia.com/irclog/view/?chan={chan[1:]}"
 
 @command("join")
 def join_command(chan, sender, args):
@@ -337,12 +321,25 @@ class IRCBot:
                     cmd_parts = message[1:].split()
                     cmd = cmd_parts[0].lower()
                     args = cmd_parts[1:]
-                    
                     reply_target = target if target.startswith('#') else sender_nick
-                    
                     self.handle_command(sender_nick, reply_target, cmd, args)
                 except IndexError:
                     pass
+            elif sender_nick == RELAYBOT:
+                end_of_nick_index = message.find('>')
+                nick = message[1:end_of_nick_index]
+                msg_start_index = end_of_nick_index + 2
+                msg = message[msg_start_index:].strip()
+                if msg.startswith("!") or msg.startswith("！"):
+                    try:
+                        cmd_parts = msg[1:].split()
+                        cmd = cmd_parts[0].lower()
+                        args = cmd_parts[1:]
+                        if target.startswith('#'):
+                            reply_target = target 
+                            self.handle_command(nick, reply_target, cmd, args)
+                    except IndexError:
+                        pass
 
         elif command == "JOIN":
             args = params
