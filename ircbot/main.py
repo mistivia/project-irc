@@ -7,16 +7,19 @@ import os
 import datetime
 import urllib.parse
 
-SERVER = "raye.mistivia.com"
-PORT = 6667
-NICKNAME = "android"
+config = None
+with open('./config.json', 'r', encoding='utf-8') as f:
+    config = json.load(f)
+SERVER = config['server']
+PORT = config['port']
+NICKNAME = config['nickname']
+REALNAME = config['realname']
+CHANNELS = config['channels']
+GREETINGS = config['greetings']
+LOGPATH = config['logpath']
+RELAYBOT = config['relaybot']
+
 IDENT = NICKNAME
-REALNAME = "bot"
-CHANNELS = [
-]
-GREETINGS = ["#main"]
-LOGPATH = '/volume/webroot/irclog'
-RELAYBOT = 'TeleIRC'
 
 BUFFER_SIZE = 2048
 
@@ -136,6 +139,26 @@ def roll_command(chan, sender, args):
 
 # ========================================================================
 
+def cut_string(text, chunk_size=420):
+    chunks = []
+    current_chunk = []
+    current_length = 0
+
+    for char in text:
+        char_bytes = char.encode('utf-8')
+        char_length = len(char_bytes)
+        if current_length + char_length > chunk_size:
+            if len(current_chunk) > 0:
+                chunks.append("".join(current_chunk))
+            current_chunk = [char]
+            current_length = char_length
+        else:
+            current_chunk.append(char)
+            current_length += char_length
+    if len(current_chunk) > 0:
+        chunks.append("".join(current_chunk))
+    return chunks
+
 def write_log(channel, nick, msg):
     if msg.startswith('!log'):
         return
@@ -209,20 +232,12 @@ class IRCBot:
             self.send_line(target, line)
 
     def send_line(self, target, msg):
+        chunks = cut_string(msg)
         max_length = 100
         message_length = len(msg)
-        if message_length > max_length:
-            num_batches = (message_length + max_length - 1) // max_length
-
-            for i in range(num_batches):
-                start_index = i * max_length
-                end_index = min((i + 1) * max_length, message_length)
-                chunk = msg[start_index:end_index]
-                self.send_raw(f"PRIVMSG {target} :{chunk}")
-                write_log(target, NICKNAME, chunk)
-        else:
-            self.send_raw(f"PRIVMSG {target} :{msg}")
-            write_log(target, NICKNAME, msg)
+        for chunk in chunks:
+            self.send_raw(f"PRIVMSG {target} :{chunk}")
+            write_log(target, NICKNAME, chunk)
 
     def connect(self):
         print(f"Connecting to {self.server}:{self.port}...")

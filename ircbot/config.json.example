@@ -1,0 +1,14 @@
+{
+    "server": "raye.mistivia.com",
+    "port": 6667,
+    "nickname": "android",
+    "realname": "bot",
+    "channels": [
+        "#main",
+    ],
+    "greetings": [
+        "#main"
+    ],
+    "logpath": "/var/log/irclog",
+    "relaybot": "TeleIRC"
+}
