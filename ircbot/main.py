@@ -35,12 +35,13 @@ def command(name):
 def help_cmd(chan, sender, args):
     return """命令列表：
     1. 询问大模型：!gemini 问题
-    2. 丢骰子： !dice [骰数]d[面数]
-    3. 随机选择：!choice 选项1 选项2 ... 选项n
-    4. 复读机：!say 复读内容
-    5. AI词典: !dict 单词
-    6. 查看聊天记录：!log
-    7. 举办电话会议: !meet
+    2. 具有联网搜索的大模型：!google 问题
+    3. 丢骰子： !dice [骰数]d[面数]
+    4. 随机选择：!choice 选项1 选项2 ... 选项n
+    5. 复读机：!say 复读内容
+    6. AI词典: !dict 单词
+    7. 查看聊天记录：!log
+    8. 举办电话会议: !meet
     """
 
 @command("meet")
@@ -68,7 +69,7 @@ def join_command(chan, sender, args):
         return ''
     if chan in LAST_SEEN \
             and sender in LAST_SEEN[chan] \
-            and time.time() - LAST_SEEN[chan][sender] < 900:
+            and time.time() - LAST_SEEN[chan][sender] < 90:
         LAST_SEEN[chan][sender] = time.time()
         return ''
     if chan not in LAST_SEEN:
@@ -79,7 +80,7 @@ def join_command(chan, sender, args):
 @command("dict")
 def dict_command(chan, sender, args):
     query = " ".join(args)
-    prompt = """你是一个多语言到汉语的词典，你将针对用户输入的单词，给出中文的释义和原始语言的例句。回复要简单清晰简短。格式为：“意思：xxx；例句：xxx”。如果单词有多个意思，每个意思一行。
+    prompt = """你是一个多语言到汉语的词典，你将针对用户输入的单词，给出中文的释义和原始语言的例句。回复要简单清晰简短。格式为：“释义：xxx；例句：xxx”。如果单词有多个意思，每个意思一行。
 
 用户: """ + query + '\n\n词典: '
     command = ['/usr/local/bin/gemini']
@@ -93,10 +94,27 @@ def dict_command(chan, sender, args):
     stdout, stderr = process.communicate(input=prompt)
     return stdout
 
+@command("google")
+def gamini_command(chan, sender, args):
+    query = " ".join(args)
+    prompt = """你是一个人工智能助手，你将针对用户的问题或者指令给出明确、简短、简洁、优秀的回答，必要时使用Google搜索。你的回答对用户非常重要。
+
+用户: """ + query + '\n\n助手: '
+    command = ['/usr/local/bin/google']
+    process = subprocess.Popen(
+        command, 
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    stdout, stderr = process.communicate(input=prompt)
+    return stdout
+
 @command("gemini")
 def gamini_command(chan, sender, args):
     query = " ".join(args)
-    prompt = """你是一个人工智能助手，你将针对用户的问题或者指令给出明确、简短、简洁、并且尽可能好的回答。你的回答对用户非常重要。
+    prompt = """你是一个人工智能助手，你将针对用户的问题或者指令给出明确、简短、简洁、优秀的回答。你的回答对用户非常重要。
 
 用户: """ + query + '\n\n助手: '
     command = ['/usr/local/bin/gemini']
@@ -344,6 +362,18 @@ class IRCBot:
                 channel = params[0]
             TOPICS[channel] = trailing
             save_topics()
+        elif command == "QUIT":
+            for chan in LAST_SEEN:
+                if sender_nick in LAST_SEEN[chan]:
+                    LAST_SEEN[chan][sender_nick] = time.time()
+        elif command == 'PART':
+            args = params
+            if len(params) >= 1:
+                chan = params[0]
+            else:
+                chan = trailing
+            if chan in LAST_SEEN:
+                LAST_SEEN[chan][sender_nick] = time.time()
         elif command == "PRIVMSG":
             if sender_nick == NICKNAME:
                 return
