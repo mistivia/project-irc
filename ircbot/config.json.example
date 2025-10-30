@@ -9,6 +9,9 @@
     "greetings": [
         "#main"
     ],
+    "no_greeting_nicks": [
+        "TelegramBridge"
+    ],
     "logpath": "/var/log/irclog",
     "relaybot": "TeleIRC"
 }

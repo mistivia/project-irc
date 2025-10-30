@@ -6,6 +6,7 @@ import json
 import os
 import datetime
 import urllib.parse
+import hashlib
 
 config = None
 with open('./config.json', 'r', encoding='utf-8') as f:
@@ -30,8 +31,6 @@ def command(name):
         return func
     return decorator
 
-# ================================================
-
 @command("help")
 def help_cmd(chan, sender, args):
     return """命令列表：
@@ -41,10 +40,23 @@ def help_cmd(chan, sender, args):
     4. 复读机：!say 复读内容
     5. AI词典: !dict 单词
     6. 查看聊天记录：!log
+    7. 举办电话会议: !meet
     """
+
+@command("meet")
+def meet_cmd(chan, sender, args):
+    data_to_hash = SERVER + chan + '#' + str(int(time.time()) // 120)
+    data_bytes = data_to_hash.encode('utf-8')
+    hash_object = hashlib.sha256()
+    hash_object.update(data_bytes)
+    hex_digest = hash_object.hexdigest()
+    return '加入会议: https://meet.jit.si/' + hex_digest[:24] + '#config.startWithVideoMuted=true'
+
 @command("log")
 def log_command(chan, sender, args):
     return f"https://raye.mistivia.com/irclog/view/?chan={chan[1:]}"
+
+LAST_SEEN = dict()
 
 @command("join")
 def join_command(chan, sender, args):
@@ -52,6 +64,16 @@ def join_command(chan, sender, args):
         return ''
     if not chan in GREETINGS:
         return ''
+    if sender in config['no_greeting_nicks']:
+        return ''
+    if chan in LAST_SEEN \
+            and sender in LAST_SEEN[chan] \
+            and time.time() - LAST_SEEN[chan][sender] < 900:
+        LAST_SEEN[chan][sender] = time.time()
+        return ''
+    if chan not in LAST_SEEN:
+        LAST_SEEN[chan] = dict()
+    LAST_SEEN[chan][sender] = time.time()
     return "Dōmo, " + sender + ' san.'
 
 @command("dict")

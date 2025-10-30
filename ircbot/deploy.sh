@@ -1,3 +1,2 @@
-scp main.py root@raye:/home/user/ircbot/
-scp config.json root@raye:/home/user/ircbot/
+rsync -avz ./ root@raye:/home/user/ircbot/
 ssh root@raye 'nitroctl restart ircbot'
