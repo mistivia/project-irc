@@ -41,8 +41,36 @@ def help_cmd(chan, sender, args):
     5. 复读机：!say 复读内容
     6. AI词典: !dict 单词
     7. 查看聊天记录：!log
-    8. 举办电话会议: !meet
+    8. 离线留言: !memo 收信人 消息
+    9. 举办电话会议: !meet
     """
+
+def load_memos():
+    try:
+        with open("memos", "r") as fp:
+            return json.load(fp)
+    except:
+        return dict()
+
+MEMOS = load_memos()
+
+def save_memos():
+    with open("memos", "w") as fp:
+        json.dump(MEMOS, fp)
+
+@command("memo")
+def memo_cmd(chan, sender, args):
+    if chan not in MEMOS:
+        MEMOS[chan] = dict()
+    if len(args) < 2:
+        return '用法: !memo 收信人 消息'
+    recver = args[0]
+    msg = ' '.join(args[1:])
+    if recver not in MEMOS[chan]:
+        MEMOS[chan][recver] = []
+    MEMOS[chan][recver].append('(来自' + sender + '的留言) ' + recver + ': ' + msg)
+    save_memos()
+    return '已留言'
 
 @command("meet")
 def meet_cmd(chan, sender, args):
@@ -59,8 +87,7 @@ def log_command(chan, sender, args):
 
 LAST_SEEN = dict()
 
-@command("join")
-def join_command(chan, sender, args):
+def get_greeting(chan, sender, args):
     if sender == NICKNAME:
         return ''
     if not chan in GREETINGS:
@@ -69,13 +96,25 @@ def join_command(chan, sender, args):
         return ''
     if chan in LAST_SEEN \
             and sender in LAST_SEEN[chan] \
-            and time.time() - LAST_SEEN[chan][sender] < 90:
+            and time.time() - LAST_SEEN[chan][sender] < 300:
         LAST_SEEN[chan][sender] = time.time()
         return ''
     if chan not in LAST_SEEN:
         LAST_SEEN[chan] = dict()
     LAST_SEEN[chan][sender] = time.time()
     return "Dōmo, " + sender + ' san.'
+
+@command("join")
+def join_command(chan, sender, args):
+    resp = get_greeting(chan, sender, args)
+    if chan in MEMOS and sender in MEMOS[chan]:
+        for msg in MEMOS[chan][sender]:
+            if resp != '':
+                resp += '\n'
+            resp += msg
+        MEMOS[chan][sender] = []
+        save_memos()
+    return resp
 
 @command("dict")
 def dict_command(chan, sender, args):
